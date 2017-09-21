@@ -1,6 +1,7 @@
 body {
 	margin: 0;
 	padding: 0;
+	background-color: #006994;
 }
 
 p#debug{
@@ -8,4 +9,16 @@ p#debug{
 	right: 0px;
 	top: 0px;
 	font-family: monospace;
+}
+
+.player{
+	background-color: #d36e6e;
+}
+
+#island{
+	background-color: #5cb74e;
+}
+
+.rock{
+	background-color: #726d66;
 }
