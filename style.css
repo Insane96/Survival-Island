@@ -10,12 +10,7 @@ p#debug{
 	top: 0px;
 	font-family: monospace;
 }
-
-.player{
-	background-color: #d36e6e;
-}
-
-#island{
+.island{
 	background-color: #5cb74e;
 }
 

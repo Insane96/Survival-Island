@@ -33,8 +33,7 @@ window.onload = function(){
 		Game.Update();
 	}, 1000 / 60);
 	
-	
-	island = new Island(100, 100, 750, 450);
+	Game.island = new Island(100, 100, 750, 450);
 }
 
 window.addEventListener("keydown", function(e){
@@ -58,6 +57,88 @@ window.addEventListener("keyup", function(e){
 	}
 });
 
+window.addEventListener("gamepadconnected", function(e) {
+  console.log("Gamepad connected at index %d: %s. %d buttons, %d axes.",
+    e.gamepad.index, e.gamepad.id,
+    e.gamepad.buttons.length, e.gamepad.axes.length);
+});
+
+function GameObject(x, y, width, height){
+	if (arguments.length < 4)
+		throw "GameObject contstructor requires 4 arguments. Arguments: " + arguments.length;
+	
+	this.pos = new Vector2(x, y);
+	this.size = new Vector2(width, height);
+	
+	Object.defineProperty(this, "centerPosition", {
+		get: function(){
+			return new Vector2(this.pos.x + this.size.x / 2, this.pos.y + this.size.y / 2);
+		}
+	});
+	
+	Game.GameObjects.push(this);
+}
+
+GameObject.IsColliding = function(collider, colliding){
+	if (arguments.length < 2)
+		throw "GameObject.IsColliding() requires 2 arguments. Arguments: " + arguments.length;
+	
+	if (collider.pos === undefined || colliding.pos === undefined)
+		throw "GameObject.IsColliding() typeof arguments must be GameObject";
+	
+	if (colliding.hitbox.x1 + colliding.pos.x < collider.hitbox.x2 + collider.pos.x && 
+		colliding.hitbox.x2 + colliding.pos.x > collider.hitbox.x1 + collider.pos.x && 
+		colliding.hitbox.y1 + colliding.pos.y < collider.hitbox.y2 + collider.pos.y && 
+		colliding.hitbox.y2 + colliding.pos.y > collider.hitbox.y1 + collider.pos.y){
+		return true;
+	}
+		
+	return false;
+}
+
+function Sprite(spritePath, className, x, y, width, height, hitbox){
+	if (arguments.length < 6)
+		throw "Sprite constructor requires at least 6 arguments. Arguments: " + arguments.length;
+	
+	if (hitbox === undefined)
+		hitbox = new Hitbox(0, 0, width, height);
+	this.hitbox = hitbox;
+	
+	GameObject.call(this, x, y, width, height);
+	
+	this.collisionPos = new Vector2(2, 2);
+	this.collisionSize = new Vector2(2, 2);
+	
+	this.dom = document.createElement("div");
+	this.dom.className = className;
+	
+	this.dom.style.position = "absolute";
+	this.dom.style.width = this.size.x;
+	this.dom.style.height = this.size.y;
+	this.dom.style.left = this.pos.x + "px";
+	this.dom.style.top = this.pos.y + "px";
+	this.dom.style.backgroundImage = "url("+spritePath+")";
+	
+	document.body.appendChild(this.dom);
+}
+
+function Hitbox(x1, y1, x2, y2){
+	if (arguments.length == 0){
+		this.x1 = 0;
+		this.x2 = 0;
+		this.y1 = 0;
+		this.y2 = 0;
+	}
+	else if (arguments.length < 4)
+		throw "Hitbox constructor must have 4 arguments. Arguments: " + arguments.length;
+	else {
+		this.x1 = x1;
+		this.x2 = x2;
+		this.y1 = y1;
+		this.y2 = y2;
+	}
+}
+
 function KeyMap(up, down, left, right, action){
 	if (typeof up == "string")
 		up = up.toUpperCase().charCodeAt(0);
@@ -77,27 +158,13 @@ function KeyMap(up, down, left, right, action){
 	this.action = action;
 }
 
-var player;
+function Player(x, y, width, height, keymap){
+	this.hitbox = new Hitbox(2, 2, width - 2, height - 2);
+	Sprite.call(this, "assets/textures/player.png", "player", x, y, width, height, this.hitbox);
 
-function Player(pos, name, keymap){
-	if (pos.x == null)
-		pos = Vector2.Zero;
-	this.pos = pos;
-	this.size = new Vector2(30, 30)
-	this.name = name;
 	if (keymap === undefined)
 		keymap = new KeyMap(KeyCodes.ArrowUp, KeyCodes.ArrowDown, KeyCodes.ArrowLeft, KeyCodes.ArrowRight, KeyCodes.Space);
-	
 	this.keymap = keymap;
-	
-	this.dom = document.createElement("div");
-	this.dom.className = "player";
-	
-	this.dom.style.position = "absolute";
-	this.dom.style.width = this.size.x;
-	this.dom.style.height = this.size.y;
-	this.dom.style.left = this.pos.x + "px";
-	this.dom.style.top = this.pos.y + "px";
 	
 	this.direction = Vector2.Zero;
 	this.movementSpeed = 50;
@@ -110,23 +177,22 @@ function Player(pos, name, keymap){
 		var oldPos = this.pos;
 		this.pos = Vector2.Sum(this.pos, speed);
 		
-		if (this.pos.x < island.pos.x)
-			this.pos.x = island.pos.x;
-		if (this.pos.y < island.pos.y)
-			this.pos.y = island.pos.y
-		if (this.pos.x + this.size.x > island.pos.x + island.size.x)
-			this.pos.x = island.pos.x + island.size.x - this.size.x;
-		if (this.pos.y + this.size.y > island.pos.y + island.size.y)
-			this.pos.y = island.pos.y + island.size.y - this.size.y;
+		if (this.pos.x < Game.island.pos.x)
+			this.pos.x = Game.island.pos.x;
+		if (this.pos.y < Game.island.pos.y)
+			this.pos.y = Game.island.pos.y
+		if (this.pos.x + this.size.x > Game.island.pos.x + Game.island.size.x)
+			this.pos.x = Game.island.pos.x + Game.island.size.x - this.size.x;
+		if (this.pos.y + this.size.y > Game.island.pos.y + Game.island.size.y)
+			this.pos.y = Game.island.pos.y + Game.island.size.y - this.size.y;
 		
-		for (var i = 0; i < island.rocks.length; i++){
-			var rock = island.rocks[i];
-			if (this.pos.x < rock.pos.x + rock.size.x && 
-				this.pos.x + this.size.x > rock.pos.x && 
-				this.pos.y < rock.pos.y + rock.size.y && 
-				this.pos.y + this.size.y > rock.pos.y)
+		for (var i = 0; i < Game.island.rocks.length; i++){
+			var rock = Game.island.rocks[i];
+			if (GameObject.IsColliding(this, rock)){
 				this.pos = oldPos;
+			}
 		}
+		
 		
 		this.dom.style.left = this.pos.x + "px";
 		this.dom.style.top = this.pos.y + "px";
@@ -134,7 +200,6 @@ function Player(pos, name, keymap){
 	}
 	
 	this.OnKeyDown = function(event){
-		console.log("down: " + event.keyCode);
 		if (this.direction.x == 0){
 			if (event.keyCode == this.keymap.left)
 				this.direction = Vector2.Sum(this.direction, Vector2.Left);
@@ -150,7 +215,6 @@ function Player(pos, name, keymap){
 			if (event.keyCode == this.keymap.down)
 				this.direction = Vector2.Sum(this.direction, Vector2.Down);
 		}
-		
 	}
 	
 	this.OnKeyPress = function(event){
@@ -171,54 +235,69 @@ function Player(pos, name, keymap){
 			this.direction = Vector2.Subtract(this.direction, Vector2.Down);
 		}
 	}
-	
-	document.body.appendChild(this.dom);
-	
-	Game.GameObjects.push(this);
 }
 
-var island;
-
 function Island(x, y, width, height){
-	this.pos = new Vector2(x, y);
-	this.size = new Vector2(width, height);
-	
-	this.dom = document.createElement("div");
-	this.dom.id = "island";
-	
-	this.dom.style.position = "absolute";
-	this.dom.style.width = this.size.x;
-	this.dom.style.height = this.size.y;
-	this.dom.style.left = this.pos.x + "px";
-	this.dom.style.top = this.pos.y + "px";
+	var hitbox = new Hitbox();
+	Sprite.call(this, "assets/textures/island.png", "island", x, y, width, height, hitbox);
 	this.dom.style.zIndex = -1;
 	
 	this.rocks = [];
 	
-	player = new Player(this.pos, "name");
+	Game.player = new Player(this.pos.x, this.pos.y, 22, 30);
 	for (var i = 0; i < 10; i++){
 		var rockSize = new Vector2(Math.random() * 10 + 15, Math.random() * 10 + 15)
 		var rock = new Rock(Math.random() * (this.size.x - rockSize.x) + this.pos.x, Math.random() * (this.size.y - rockSize.y) + this.pos.y, rockSize.x, rockSize.y);
 		this.rocks.push(rock);
 	}
-	
-	document.body.appendChild(this.dom);
 }
 
 function Rock(x, y, width, height){
-	this.pos = new Vector2(x, y);
-	this.size= new Vector2(width, height);
+	Sprite.call(this, "assets/textures/rock.png", "rock", x, y, width, height);
+}
+
+function Enemy(spritePath, x, y, width, height){
+	Sprite.call(this, spritePath, "enemy", x, y, width, height);
+	this.movementSpeed = 25;
+	this.AI = EnemyAI.CHASING;
+	var direction;
+	var collidedWith;
 	
-	this.dom = document.createElement("div");
-	this.dom.className = "rock";
-	
-	this.dom.style.position = "absolute";
-	this.dom.style.width = this.size.x;
-	this.dom.style.height = this.size.y;
-	this.dom.style.left = this.pos.x + "px";
-	this.dom.style.top = this.pos.y + "px";
-	
-	Game.GameObjects.push(this);
-	
-	document.body.appendChild(this.dom);
+	this.Update = function(){
+		if (this.AI == EnemyAI.CHASING){
+			direction = Vector2.Direction(this.centerPosition, Game.player.centerPosition);
+			var directionSpeed = Vector2.Multiply(direction, this.movementSpeed * Game.deltaTime);
+			var oldPos = this.pos;
+			this.pos = Vector2.Sum(this.pos, directionSpeed);
+			
+			for (var i = 0; i < Game.island.rocks.length; i++){
+				var rock = Game.island.rocks[i];
+				if (GameObject.IsColliding(this, rock)){
+					this.pos = oldPos;
+				}
+			}
+			
+			if (GameObject.IsColliding(this, Game.player)){
+				this.AI = EnemyAI.DAMAGING;
+			}
+		}
+		else if (this.AI == EnemyAI.DAMAGING){
+			//Damage PLayer
+			if (Vector2.Distance(this.centerPosition, Game.player.centerPosition) > this.size.x)
+				this.AI = EnemyAI.CHASING;
+		}
+		this.dom.style.left = this.pos.x + "px";
+		this.dom.style.top = this.pos.y + "px";
+		Debug.Write("Enemy<br/>x: " + (Math.round(this.pos.x * 100) / 100) + " y: " + (Math.round(this.pos.y * 100) / 100));
+	}
+}
+
+function Slime(x, y){
+	Enemy.call(this, "assets/textures/slime.png", x, y, 19, 9);
+	this.movementSpeed = 15;
+}
+
+var enemy;
+function SpawnEnemy(){
+	enemy = new Slime(Math.random() * Game.island.size.x / 2 + Game.island.pos.x, Math.random() * Game.island.size.y / 2 + Game.island.pos.y);
 }

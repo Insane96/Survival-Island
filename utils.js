@@ -41,7 +41,7 @@ Vector2.Direction = function(vector2Start, vector2End){
 	if (arguments.length < 2)
 		throw "Error: Vector2.Direction requires 2 arguments. Arguments provided: " + arguments.length;
 	
-	var heading = new Vector2(vector2Start.x - vector2End.x, vector2Start.y - vector2End.y);
+	var heading = new Vector2(vector2End.x - vector2Start.x, vector2End.y - vector2Start.y);
 	var distance = Vector2.Distance(vector2Start, vector2End);
 	
 	var direction = new Vector2(heading.x / distance, heading.y / distance);
@@ -73,11 +73,29 @@ Vector2.Divide = function(vector2A, vector2B){
 	return new Vector2(vector2A.x / vector2B.x, vector2A.y / vector2B.y);
 }
 
+Vector2.Rotate = function(vector, degrees) {
+	var radians = Math.DegrToRad(degrees);
+	var sin = Math.sin(radians);
+	var cos = Math.cos(radians);
+
+	var tx = vector.x;
+	var ty = vector.y;
+
+	return new Vector2(cos * tx - sin * ty, sin * tx + cos * ty);
+}
+
 Vector2.Zero = new Vector2(0, 0);
 Vector2.Up = new Vector2(0, -1);
 Vector2.Down = new Vector2(0, 1);
 Vector2.Right = new Vector2(1, 0);
 Vector2.Left = new Vector2(-1, 0);
+
+Math.DegrToRad = function(degr){
+	return (Math.PI / 180) * degr;
+}
+Math.RadToDegr = function(rad){
+	return (180 / Math.PI) * rad;
+}
 
 var KeyCodes = {
 	Space: 32,
@@ -92,4 +110,10 @@ var Directions = {
 	RIGHT: 1,
 	DOWN: 2,
 	LEFT: 3
+}
+
+var EnemyAI = {
+	CHASING: 0,
+	DAMAGING: 1,
+	FLEEING: 2
 }
