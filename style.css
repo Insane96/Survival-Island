@@ -10,10 +10,23 @@ p#debug{
 	top: 0px;
 	font-family: monospace;
 }
+
+div{
+	image-rendering: pixelated;
+}
+
 .island{
 	background-color: #5cb74e;
 }
 
 .rock{
 	background-color: #726d66;
+}
+
+.player{
+	background-size:cover;
+}
+
+.enemy{
+	background-size:cover;
 }

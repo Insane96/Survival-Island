@@ -244,9 +244,9 @@ function Island(x, y, width, height){
 	
 	this.rocks = [];
 	
-	Game.player = new Player(this.pos.x, this.pos.y, 22, 30);
+	Game.player = new Player(this.pos.x, this.pos.y, 33, 45);
 	for (var i = 0; i < 10; i++){
-		var rockSize = new Vector2(Math.random() * 10 + 15, Math.random() * 10 + 15)
+		var rockSize = new Vector2(Math.random() * 15 + 22.5, Math.random() * 15 + 22.5)
 		var rock = new Rock(Math.random() * (this.size.x - rockSize.x) + this.pos.x, Math.random() * (this.size.y - rockSize.y) + this.pos.y, rockSize.x, rockSize.y);
 		this.rocks.push(rock);
 	}
@@ -293,7 +293,7 @@ function Enemy(spritePath, x, y, width, height){
 }
 
 function Slime(x, y){
-	Enemy.call(this, "assets/textures/slime.png", x, y, 19, 9);
+	Enemy.call(this, "assets/textures/slime.png", x, y, 28.5, 13.5);
 	this.movementSpeed = 15;
 }
 
