@@ -8,8 +8,6 @@ Vector2.Length = function(vector2){
 	if (arguments.length < 1)
 		throw "Error: Vector2.Length requires 1 argument. Arguments provided: " + arguments.length;
 	
-	//Pytagorean theorem
-	//FML
 	return Math.sqrt(vector2.x * vector2.x + vector2.y * vector2.y);
 }
 
@@ -116,4 +114,14 @@ var EnemyAI = {
 	CHASING: 0,
 	DAMAGING: 1,
 	FLEEING: 2
+}
+
+var Debug = {
+	Write: function(string){
+		document.getElementById("debug").innerHTML += string + "<br />";
+	},
+
+	Clear: function(){
+		document.getElementById("debug").innerHTML = "";
+	}
 }

@@ -18,16 +18,6 @@ var Game = {
 	GameObjects: [],
 }
 
-var Debug = {
-	Write: function(string){
-		document.getElementById("debug").innerHTML += string + "<br />";
-	},
-
-	Clear: function(){
-		document.getElementById("debug").innerHTML = "";
-	}
-}
-
 window.onload = function(){
 	window.setInterval(function(){
 		Game.Update();
@@ -57,11 +47,11 @@ window.addEventListener("keyup", function(e){
 	}
 });
 
-window.addEventListener("gamepadconnected", function(e) {
+/* window.addEventListener("gamepadconnected", function(e) {
   console.log("Gamepad connected at index %d: %s. %d buttons, %d axes.",
     e.gamepad.index, e.gamepad.id,
     e.gamepad.buttons.length, e.gamepad.axes.length);
-});
+}); */
 
 function GameObject(x, y, width, height){
 	if (arguments.length < 4)
@@ -69,6 +59,7 @@ function GameObject(x, y, width, height){
 	
 	this.pos = new Vector2(x, y);
 	this.size = new Vector2(width, height);
+	this.tags = ["gameObject"];
 	
 	Object.defineProperty(this, "centerPosition", {
 		get: function(){
@@ -79,20 +70,40 @@ function GameObject(x, y, width, height){
 	Game.GameObjects.push(this);
 }
 
-GameObject.IsColliding = function(collider, colliding){
-	if (arguments.length < 2)
-		throw "GameObject.IsColliding() requires 2 arguments. Arguments: " + arguments.length;
+GameObject.IsColliding = function(collider){
+	if (arguments.length != 1)
+		throw "GameObject.IsColliding() requires 1 argument. Arguments: " + arguments.length;
 	
-	if (collider.pos === undefined || colliding.pos === undefined)
+	if (collider.pos === undefined)
 		throw "GameObject.IsColliding() typeof arguments must be GameObject";
 	
-	if (colliding.hitbox.x1 + colliding.pos.x < collider.hitbox.x2 + collider.pos.x && 
+	var gameObjects = [];
+	
+	for (var i = 0; i < Game.GameObjects.length; i++){
+		var colliding = Game.GameObjects[i];
+		if (colliding.hitbox.x1 + colliding.pos.x < collider.hitbox.x2 + collider.pos.x && 
 		colliding.hitbox.x2 + colliding.pos.x > collider.hitbox.x1 + collider.pos.x && 
 		colliding.hitbox.y1 + colliding.pos.y < collider.hitbox.y2 + collider.pos.y && 
 		colliding.hitbox.y2 + colliding.pos.y > collider.hitbox.y1 + collider.pos.y){
-		return true;
+			gameObjects.push(colliding);
+		}
 	}
 		
+	return gameObjects;
+}
+
+GameObject.HasTag = function(gameObject, tag){
+	if (arguments.length < 2)
+		throw "GameObject.HasTag() requires 2 arguments. Arguments: " + arguments.length;
+	
+	if (gameObject.tags === undefined)
+		throw "GameObject.HasTag() typeof argument gameObject must be a GameObject";
+	
+	for (var i = 0; i < gameObject.tags.length; i++){
+		if (gameObject.tags[i] === tag){
+			return true;
+		}
+	}
 	return false;
 }
 
@@ -159,12 +170,13 @@ function KeyMap(up, down, left, right, action){
 }
 
 function Player(x, y, width, height, keymap){
-	this.hitbox = new Hitbox(2, 2, width - 2, height - 2);
+	this.hitbox = new Hitbox(4, 4, width - 4, height - 4);
 	Sprite.call(this, "assets/textures/player.png", "player", x, y, width, height, this.hitbox);
 
 	if (keymap === undefined)
 		keymap = new KeyMap(KeyCodes.ArrowUp, KeyCodes.ArrowDown, KeyCodes.ArrowLeft, KeyCodes.ArrowRight, KeyCodes.Space);
 	this.keymap = keymap;
+	this.tags.push("player");
 	
 	this.direction = Vector2.Zero;
 	this.movementSpeed = 50;
@@ -186,13 +198,12 @@ function Player(x, y, width, height, keymap){
 		if (this.pos.y + this.size.y > Game.island.pos.y + Game.island.size.y)
 			this.pos.y = Game.island.pos.y + Game.island.size.y - this.size.y;
 		
-		for (var i = 0; i < Game.island.rocks.length; i++){
-			var rock = Game.island.rocks[i];
-			if (GameObject.IsColliding(this, rock)){
-				this.pos = oldPos;
+		var colliding = GameObject.IsColliding(this);
+		for (var i = 0; i < colliding.length; i++){
+			if (GameObject.HasTag(colliding[i], "rock")){
+				this.pos = oldPos
 			}
 		}
-		
 		
 		this.dom.style.left = this.pos.x + "px";
 		this.dom.style.top = this.pos.y + "px";
@@ -241,6 +252,7 @@ function Island(x, y, width, height){
 	var hitbox = new Hitbox();
 	Sprite.call(this, "assets/textures/island.png", "island", x, y, width, height, hitbox);
 	this.dom.style.zIndex = -1;
+	this.tags.push("island");
 	
 	this.rocks = [];
 	
@@ -254,6 +266,7 @@ function Island(x, y, width, height){
 
 function Rock(x, y, width, height){
 	Sprite.call(this, "assets/textures/rock.png", "rock", x, y, width, height);
+	this.tags.push("rock");
 }
 
 function Enemy(spritePath, x, y, width, height){
@@ -262,6 +275,13 @@ function Enemy(spritePath, x, y, width, height){
 	this.AI = EnemyAI.CHASING;
 	var direction;
 	var collidedWith;
+	this.tags.push("enemy");
+}
+
+function Slime(x, y){
+	Enemy.call(this, "assets/textures/slime.png", x, y, 28.5, 13.5);
+	this.tags.push("slime");
+	this.movementSpeed = 15;
 	
 	this.Update = function(){
 		if (this.AI == EnemyAI.CHASING){
@@ -270,15 +290,14 @@ function Enemy(spritePath, x, y, width, height){
 			var oldPos = this.pos;
 			this.pos = Vector2.Sum(this.pos, directionSpeed);
 			
-			for (var i = 0; i < Game.island.rocks.length; i++){
-				var rock = Game.island.rocks[i];
-				if (GameObject.IsColliding(this, rock)){
+			var colliding = GameObject.IsColliding(this);
+			for (var i = 0; i < colliding.length; i++){
+				if (GameObject.HasTag(colliding[i], "rock")){
 					this.pos = oldPos;
 				}
-			}
-			
-			if (GameObject.IsColliding(this, Game.player)){
-				this.AI = EnemyAI.DAMAGING;
+				else if (GameObject.HasTag(colliding[i], "player")){
+					this.AI = EnemyAI.DAMAGING;
+				}
 			}
 		}
 		else if (this.AI == EnemyAI.DAMAGING){
@@ -290,11 +309,6 @@ function Enemy(spritePath, x, y, width, height){
 		this.dom.style.top = this.pos.y + "px";
 		Debug.Write("Enemy<br/>x: " + (Math.round(this.pos.x * 100) / 100) + " y: " + (Math.round(this.pos.y * 100) / 100));
 	}
-}
-
-function Slime(x, y){
-	Enemy.call(this, "assets/textures/slime.png", x, y, 28.5, 13.5);
-	this.movementSpeed = 15;
 }
 
 var enemy;
